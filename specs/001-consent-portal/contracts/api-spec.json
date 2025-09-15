@@ -1,0 +1,499 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Academic Consent Portal API",
+    "description": "API for managing academic research consent through Bank ID verification",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-project.supabase.co/functions/v1",
+      "description": "Supabase Edge Functions"
+    }
+  ],
+  "paths": {
+    "/auth/bankid/initiate": {
+      "post": {
+        "summary": "Initiate Bank ID authentication",
+        "operationId": "initiateBankId",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankIdInitiateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankIdInitiateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          }
+        }
+      }
+    },
+    "/auth/bankid/status/{orderRef}": {
+      "get": {
+        "summary": "Check Bank ID authentication status",
+        "operationId": "checkBankIdStatus",
+        "parameters": [
+          {
+            "name": "orderRef",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status check successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankIdStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studies": {
+      "get": {
+        "summary": "List all active studies",
+        "operationId": "listStudies",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["draft", "active", "paused", "completed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Studies retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Study"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new study",
+        "operationId": "createStudy",
+        "security": [{"supabaseAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Study created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Study"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studies/{studyId}": {
+      "get": {
+        "summary": "Get study details",
+        "operationId": "getStudy",
+        "parameters": [
+          {
+            "name": "studyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Study details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyWithPdf"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update study",
+        "operationId": "updateStudy",
+        "security": [{"supabaseAuth": []}],
+        "parameters": [
+          {
+            "name": "studyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Study updated successfully"
+          }
+        }
+      }
+    },
+    "/consent": {
+      "post": {
+        "summary": "Submit consent for a study",
+        "operationId": "submitConsent",
+        "security": [{"supabaseAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentSubmissionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Consent recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consent/withdraw": {
+      "post": {
+        "summary": "Withdraw consent for a study",
+        "operationId": "withdrawConsent",
+        "security": [{"supabaseAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentWithdrawalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent withdrawn successfully"
+          }
+        }
+      }
+    },
+    "/pdf/upload": {
+      "post": {
+        "summary": "Upload a PDF consent document",
+        "operationId": "uploadPdf",
+        "security": [{"supabaseAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "filename": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "PDF uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PDFDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pdf/{documentId}/url": {
+      "get": {
+        "summary": "Get signed URL for PDF access",
+        "operationId": "getPdfUrl",
+        "security": [{"supabaseAuth": []}],
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed URL generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signedUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BankIdInitiateRequest": {
+        "type": "object",
+        "required": ["personalNumber"],
+        "properties": {
+          "personalNumber": {
+            "type": "string",
+            "pattern": "^[0-9]{8}-[0-9]{4}$",
+            "description": "Swedish personal number (YYYYMMDD-XXXX)"
+          }
+        }
+      },
+      "BankIdInitiateResponse": {
+        "type": "object",
+        "properties": {
+          "orderRef": {
+            "type": "string"
+          },
+          "autoStartToken": {
+            "type": "string"
+          },
+          "qrStartToken": {
+            "type": "string"
+          },
+          "qrStartSecret": {
+            "type": "string"
+          }
+        }
+      },
+      "BankIdStatusResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "failed", "complete"]
+          },
+          "hintCode": {
+            "type": "string"
+          },
+          "completionData": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "properties": {
+                  "personalNumber": {"type": "string"},
+                  "name": {"type": "string"},
+                  "givenName": {"type": "string"},
+                  "surname": {"type": "string"}
+                }
+              },
+              "device": {
+                "type": "object",
+                "properties": {
+                  "ipAddress": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "Study": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "researcher_id": {"type": "string", "format": "uuid"},
+          "pdf_document_id": {"type": "string", "format": "uuid"},
+          "status": {
+            "type": "string",
+            "enum": ["draft", "active", "paused", "completed", "cancelled"]
+          },
+          "start_date": {"type": "string", "format": "date"},
+          "end_date": {"type": "string", "format": "date"},
+          "max_participants": {"type": "integer"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "StudyWithPdf": {
+        "allOf": [
+          {"$ref": "#/components/schemas/Study"},
+          {
+            "type": "object",
+            "properties": {
+              "pdf_document": {"$ref": "#/components/schemas/PDFDocument"}
+            }
+          }
+        ]
+      },
+      "CreateStudyRequest": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1, "maxLength": 255},
+          "description": {"type": "string"},
+          "start_date": {"type": "string", "format": "date"},
+          "end_date": {"type": "string", "format": "date"},
+          "max_participants": {"type": "integer", "minimum": 1}
+        }
+      },
+      "UpdateStudyRequest": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string", "minLength": 1, "maxLength": 255},
+          "description": {"type": "string"},
+          "status": {
+            "type": "string",
+            "enum": ["draft", "active", "paused", "completed", "cancelled"]
+          },
+          "start_date": {"type": "string", "format": "date"},
+          "end_date": {"type": "string", "format": "date"},
+          "max_participants": {"type": "integer", "minimum": 1}
+        }
+      },
+      "ConsentSubmissionRequest": {
+        "type": "object",
+        "required": ["study_id", "consent_given", "bank_id_transaction_id"],
+        "properties": {
+          "study_id": {"type": "string", "format": "uuid"},
+          "consent_given": {"type": "boolean"},
+          "bank_id_transaction_id": {"type": "string"}
+        }
+      },
+      "ConsentWithdrawalRequest": {
+        "type": "object",
+        "required": ["study_id"],
+        "properties": {
+          "study_id": {"type": "string", "format": "uuid"},
+          "withdrawal_reason": {"type": "string"}
+        }
+      },
+      "ConsentRecord": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "user_id": {"type": "string", "format": "uuid"},
+          "study_id": {"type": "string", "format": "uuid"},
+          "consent_given": {"type": "boolean"},
+          "bank_id_transaction_id": {"type": "string"},
+          "timestamp": {"type": "string", "format": "date-time"},
+          "ip_address": {"type": "string"},
+          "user_agent": {"type": "string"},
+          "withdrawn_at": {"type": "string", "format": "date-time"},
+          "withdrawal_reason": {"type": "string"}
+        }
+      },
+      "PDFDocument": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "filename": {"type": "string"},
+          "original_filename": {"type": "string"},
+          "file_path": {"type": "string"},
+          "file_size": {"type": "integer"},
+          "content_type": {"type": "string"},
+          "upload_timestamp": {"type": "string", "format": "date-time"},
+          "uploaded_by": {"type": "string", "format": "uuid"},
+          "validated": {"type": "boolean"},
+          "validation_errors": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "checksum": {"type": "string"}
+        }
+      }
+    },
+    "securitySchemes": {
+      "supabaseAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
