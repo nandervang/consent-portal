@@ -1,26 +1,33 @@
-import React, { useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useState } from 'react';
 
-export function LoginForm() {
+export function LoginFormSimple() {
   const [personalNumber, setPersonalNumber] = useState('');
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     // Basic validation for Swedish personal number format
     const personalNumberRegex = /^\d{8}-\d{4}$/;
     if (!personalNumberRegex.test(personalNumber)) {
       setError('Please enter a valid Swedish personal number (YYYYMMDD-XXXX)');
+      setIsLoading(false);
       return;
     }
 
     try {
-      await login(personalNumber);
+      // Simulate authentication process
+      setTimeout(() => {
+        setIsLoading(false);
+        // Redirect to dashboard (this would be handled by routing in a real app)
+        alert('Login successful! (This is a demo)');
+      }, 2000);
     } catch (err) {
       setError('Failed to initiate Bank ID authentication');
+      setIsLoading(false);
       console.error('Login error:', err);
     }
   };
