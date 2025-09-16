@@ -1,35 +1,20 @@
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function LoginFormSimple() {
   const [personalNumber, setPersonalNumber] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { loginWithBankId, isLoading, error, bankIdStatus } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
 
     // Basic validation for Swedish personal number format
     const personalNumberRegex = /^\d{8}-\d{4}$/;
     if (!personalNumberRegex.test(personalNumber)) {
-      setError('Please enter a valid Swedish personal number (YYYYMMDD-XXXX)');
-      setIsLoading(false);
-      return;
+      return; // Error will be shown by validation
     }
 
-    try {
-      // Simulate authentication process
-      setTimeout(() => {
-        setIsLoading(false);
-        // Redirect to dashboard (this would be handled by routing in a real app)
-        alert('Login successful! (This is a demo)');
-      }, 2000);
-    } catch (err) {
-      setError('Failed to initiate Bank ID authentication');
-      setIsLoading(false);
-      console.error('Login error:', err);
-    }
+    await loginWithBankId(personalNumber);
   };
 
   const handlePersonalNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,6 +26,23 @@ export function LoginFormSimple() {
     }
     
     setPersonalNumber(value);
+  };
+
+  const isValidPersonalNumber = /^\d{8}-\d{4}$/.test(personalNumber);
+
+  const getStatusMessage = () => {
+    if (!bankIdStatus) return null;
+    
+    switch (bankIdStatus.status) {
+      case 'pending':
+        return 'Please complete the Bank ID authentication in your mobile app';
+      case 'complete':
+        return 'Authentication successful! Logging you in...';
+      case 'failed':
+        return `Authentication failed: ${bankIdStatus.hintCode || 'Unknown error'}`;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -64,6 +66,11 @@ export function LoginFormSimple() {
               disabled={isLoading}
               required
             />
+            {personalNumber && !isValidPersonalNumber && (
+              <div className="validation-error">
+                Please enter a valid Swedish personal number (YYYYMMDD-XXXX)
+              </div>
+            )}
           </div>
           
           {error && (
@@ -74,23 +81,32 @@ export function LoginFormSimple() {
           
           <button 
             type="submit" 
-            disabled={isLoading || personalNumber.length < 13}
+            disabled={isLoading || !isValidPersonalNumber}
             className="login-button"
           >
             {isLoading ? 'Authenticating...' : 'Login with Bank ID'}
           </button>
         </form>
         
-        {isLoading && (
+        {isLoading && bankIdStatus && (
           <div className="auth-status">
             <div className="spinner" />
-            <p>Please complete the Bank ID authentication in your mobile app</p>
+            <p>{getStatusMessage()}</p>
+            {bankIdStatus.status === 'pending' && (
+              <div className="status-details">
+                <p><strong>Status:</strong> {bankIdStatus.status}</p>
+                {bankIdStatus.hintCode && (
+                  <p><strong>Code:</strong> {bankIdStatus.hintCode}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
         
         <div className="test-info">
           <h4>For Testing</h4>
           <p>Use personal number: <code>197810126789</code></p>
+          <p>This will simulate a successful Bank ID authentication.</p>
         </div>
       </div>
     </div>
