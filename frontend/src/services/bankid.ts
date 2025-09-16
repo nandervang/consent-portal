@@ -27,8 +27,24 @@ export interface BankIdStatusResponse {
 export class BankIdService {
   private static readonly BANKID_AUTH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bankid-auth`;
   private static readonly BANKID_STATUS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bankid-status`;
+  private static readonly DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'http://localhost:54321';
 
   static async initiate(personalNumber: string): Promise<BankIdInitiateResponse> {
+    // Demo mode: simulate Bank ID API response without backend
+    if (this.DEMO_MODE) {
+      console.log('Running in demo mode - simulating Bank ID initiation');
+      
+      // Simulate a short delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return {
+        orderRef: `demo-order-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        autoStartToken: `demo-auto-${Math.random().toString(36).substr(2, 9)}`,
+        qrStartToken: `demo-qr-${Math.random().toString(36).substr(2, 9)}`,
+        qrStartSecret: `demo-secret-${Math.random().toString(36).substr(2, 9)}`
+      };
+    }
+
     const response = await fetch(this.BANKID_AUTH_URL, {
       method: 'POST',
       headers: {
@@ -46,6 +62,53 @@ export class BankIdService {
   }
 
   static async checkStatus(orderRef: string): Promise<BankIdStatusResponse> {
+    // Demo mode: simulate Bank ID status progression
+    if (this.DEMO_MODE) {
+      console.log('Running in demo mode - simulating Bank ID status check');
+      
+      // Simulate a short delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const isDemoOrder = orderRef.startsWith('demo-order-');
+      
+      if (!isDemoOrder) {
+        return {
+          status: 'failed',
+          hintCode: 'userCancel'
+        };
+      }
+
+      // Extract timestamp from demo order ref to simulate progression
+      const timestamp = orderRef.split('-')[2];
+      const orderTime = parseInt(timestamp);
+      const currentTime = Date.now();
+      const elapsedSeconds = (currentTime - orderTime) / 1000;
+
+      if (elapsedSeconds < 3) {
+        // Still pending
+        return {
+          status: 'pending',
+          hintCode: 'outstandingTransaction'
+        };
+      } else {
+        // Simulate successful completion
+        return {
+          status: 'complete',
+          completionData: {
+            user: {
+              personalNumber: '197810126789',
+              name: 'Erik Svensson',
+              givenName: 'Erik',
+              surname: 'Svensson'
+            },
+            device: {
+              ipAddress: '192.168.1.100'
+            }
+          }
+        };
+      }
+    }
+
     const response = await fetch(`${this.BANKID_STATUS_URL}/${orderRef}`, {
       method: 'GET',
       headers: {
